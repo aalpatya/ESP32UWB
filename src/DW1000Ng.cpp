@@ -849,6 +849,7 @@ namespace DW1000Ng {
 		void _useExtendedFrameLength(boolean val) {
 			DW1000NgUtils::setBit(_syscfg, LEN_SYS_CFG, PHR_MODE_0_BIT, val);
 			DW1000NgUtils::setBit(_syscfg, LEN_SYS_CFG, PHR_MODE_1_BIT, val);
+            _extendedFrameLength = val;
 		}
 
 		void _setReceiverAutoReenable(boolean val) {
@@ -1947,11 +1948,13 @@ namespace DW1000Ng {
 		if(_frameCheck) {
 			n += 2; // two bytes CRC-16
 		}
-		if(n > LEN_EXT_UWB_FRAMES) {
-			return; // TODO proper error handling: frame/buffer size
-		}
 		if(n > LEN_UWB_FRAMES && !_extendedFrameLength) {
-			return; // TODO proper error handling: frame/buffer size
+            n = LEN_UWB_FRAMES;
+			// return; // TODO proper error handling: frame/buffer size
+		}
+		else if(n > LEN_EXT_UWB_FRAMES) {
+            n = LEN_EXT_UWB_FRAMES;
+			// return; // TODO proper error handling: frame/buffer size
 		}
 		// transmit data and length
 		_writeBytesToRegister(TX_BUFFER, NO_SUB, data, n);
@@ -1979,10 +1982,11 @@ namespace DW1000Ng {
 		byte rxFrameInfo[LEN_RX_FINFO];
 		_readBytesFromRegister(RX_FINFO, NO_SUB, rxFrameInfo, LEN_RX_FINFO);
 		len = ((((uint16_t)rxFrameInfo[1] << 8) | (uint16_t)rxFrameInfo[0]) & 0x03FF);
-		
 		if(_frameCheck && len > 2) {
-			return len-2;
+			len = len-2;
 		}
+        // TODO WHY??? OTHERWISE RX gets a weird box after the message. extra bit
+        len = len - 1;
 		return len;
 	}
 
